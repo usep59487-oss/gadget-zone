@@ -359,7 +359,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                         <span>
                           {ord.address}, {ord.district}, {ord.division}
                         </span>
-                        {ord.status === 'Pending' && (
+                        {(ord.status === 'New Order' || ord.status === 'Pending') && (
                           <button
                             type="button"
                             onClick={() => updateOrderStatus(ord.id, 'Cancelled')}

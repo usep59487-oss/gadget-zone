@@ -51,7 +51,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       <div className="relative aspect-[4/3] w-full bg-[#F4F5F7] overflow-hidden">
         <SafeImage
           src={product.imageUrl}
-          alt={displayName}
+          alt={product.imageAlt || displayName}
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
         />
         {discountPct > 0 && (

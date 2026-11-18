@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { MessageCircle, Minus, Plus, ShieldCheck, ShoppingBag, Star, Truck, X, Zap } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ExternalLink, MessageCircle, Minus, Plus, ShieldCheck, ShoppingBag, Star, Truck, X, Zap } from 'lucide-react';
 import { Language, Product } from '../types';
 import { CATEGORY_LABELS_BN, UI_COPY } from '../data/sampleProducts';
 import { buildWhatsAppOrderUrl, calcDiscountPercent, formatBDT } from '../utils/formatters';
+import { resolveProductSlug } from '../utils/seo';
 import { SafeImage } from './SafeImage';
 
 interface ProductDetailModalProps {
@@ -53,7 +55,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
           <div className="relative bg-[#F4F5F7] aspect-[4/3] md:aspect-auto md:min-h-[420px]">
             <SafeImage
               src={product.imageUrl}
-              alt={displayName}
+              alt={product.imageAlt || displayName}
               className="w-full h-full object-cover"
             />
             {discountPct > 0 && (
@@ -180,15 +182,25 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               </button>
             </div>
 
-            <a
-              href={whatsappUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="h-10 px-4 rounded-lg border border-zinc-200 text-zinc-800 text-xs font-semibold inline-flex items-center justify-center gap-2 hover:border-emerald-600 hover:text-emerald-700 transition-colors mb-5"
-            >
-              <MessageCircle className="w-4 h-4 text-emerald-600" />
-              {lang === 'bn' ? 'হোয়াটসঅ্যাপে অর্ডার করুন' : 'Order Instantly via WhatsApp'}
-            </a>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-5">
+              <a
+                href={whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="h-10 px-4 rounded-lg border border-zinc-200 text-zinc-800 text-xs font-semibold inline-flex items-center justify-center gap-2 hover:border-emerald-600 hover:text-emerald-700 transition-colors"
+              >
+                <MessageCircle className="w-4 h-4 text-emerald-600" />
+                {lang === 'bn' ? 'হোয়াটসঅ্যাপে অর্ডার করুন' : 'Order via WhatsApp'}
+              </a>
+              <Link
+                to={`/product/${resolveProductSlug(product)}`}
+                onClick={onClose}
+                className="h-10 px-4 rounded-lg border border-zinc-200 text-zinc-800 text-xs font-semibold inline-flex items-center justify-center gap-2 hover:border-[#0066FF] hover:text-[#0066FF] transition-colors"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                {lang === 'bn' ? 'পূর্ণ বিবরণ দেখুন' : 'View Full Product Page'}
+              </Link>
+            </div>
 
             <div className="mt-auto pt-4 border-t border-zinc-100 grid grid-cols-2 gap-3 text-xs text-zinc-600">
               <div className="flex items-center gap-2">

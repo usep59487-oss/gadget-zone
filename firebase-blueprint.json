@@ -86,6 +86,26 @@
           "type": "boolean",
           "description": "Whether product appears in Best Selling Products."
         },
+        "slug": {
+          "type": "string",
+          "description": "Lowercase hyphenated SEO-friendly URL slug.",
+          "maxLength": 160,
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+        },
+        "brand": {
+          "type": "string",
+          "description": "Product brand name for Product JSON-LD schema.",
+          "maxLength": 80
+        },
+        "imageAlt": {
+          "type": "string",
+          "description": "Descriptive product image alt text.",
+          "maxLength": 200
+        },
+        "seo": {
+          "type": "object",
+          "description": "Rank Math-style SEO metadata, Social OG/Twitter tags, and Advanced SEO settings."
+        },
         "createdAt": {
           "type": "string",
           "format": "date-time",
@@ -169,6 +189,11 @@
           "minLength": 2,
           "maxLength": 60
         },
+        "city": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 60
+        },
         "address": {
           "type": "string",
           "minLength": 5,
@@ -184,7 +209,19 @@
         },
         "status": {
           "type": "string",
-          "enum": ["Pending", "Confirmed", "Shipped", "Delivered", "Cancelled"]
+          "enum": [
+            "New Order",
+            "Pending",
+            "Confirmed",
+            "Processing",
+            "Shipped",
+            "Delivered",
+            "Cancelled"
+          ]
+        },
+        "isReadByAdmin": {
+          "type": "boolean",
+          "description": "Whether an administrator has viewed or acknowledged this order."
         },
         "items": {
           "type": "array",
@@ -194,6 +231,9 @@
           "type": "number"
         },
         "deliveryFee": {
+          "type": "number"
+        },
+        "discount": {
           "type": "number"
         },
         "total": {
@@ -217,13 +257,16 @@
         "email",
         "division",
         "district",
+        "city",
         "address",
         "notes",
         "paymentMethod",
         "status",
+        "isReadByAdmin",
         "items",
         "subtotal",
         "deliveryFee",
+        "discount",
         "total",
         "createdAt",
         "updatedAt"

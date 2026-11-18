@@ -95,4 +95,20 @@ export const DIRTY_DOZEN_CASES = [
     operation: 'list',
     expected: 'PERMISSION_DENIED',
   },
+  {
+    id: 13,
+    name: 'Invalid Product SEO Robots Directive Injection',
+    collection: 'products/prod_01',
+    operation: 'update',
+    payload: { seo: { robotsIndex: 'allow-all' } },
+    expected: 'PERMISSION_DENIED',
+  },
+  {
+    id: 14,
+    name: 'Invalid Product Slug Characters',
+    collection: 'products/prod_01',
+    operation: 'update',
+    payload: { slug: 'UPPERCASE/INVALID SLUG!' },
+    expected: 'PERMISSION_DENIED',
+  },
 ];

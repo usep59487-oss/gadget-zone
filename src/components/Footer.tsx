@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Facebook, Mail, MapPin, MessageCircle, Phone } from 'lucide-react';
 import { Language } from '../types';
 import {
@@ -14,15 +15,17 @@ interface FooterProps {
   lang: Language;
   onNavigateSection: (sectionId: string) => void;
   onOpenPolicy: (policy: PolicyType) => void;
+  onOpenAdminLogin?: () => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({
   lang,
   onNavigateSection,
   onOpenPolicy,
+  onOpenAdminLogin,
 }) => {
   return (
-    <footer className="bg-zinc-950 text-zinc-300 border-t border-zinc-900">
+    <footer className="bg-zinc-950 text-zinc-300 border-t border-zinc-900 print:hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 pb-12 border-b border-zinc-800">
           {/* Brand & About */}
@@ -161,7 +164,21 @@ export const Footer: React.FC<FooterProps> = ({
 
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-zinc-500">
           <p>© {new Date().getFullYear()} Gadget Zone Bangladesh. All rights reserved.</p>
-          <p>Prices in Bangladeshi Taka (৳) · Nationwide Cash on Delivery</p>
+          <div className="flex flex-wrap items-center gap-4">
+            <p>Prices in Bangladeshi Taka (৳) · Nationwide Cash on Delivery</p>
+            {onOpenAdminLogin && (
+              <Link
+                to="/admin"
+                onClick={(e) => {
+                  e.preventDefault();
+                  onOpenAdminLogin();
+                }}
+                className="text-zinc-400 hover:text-white underline underline-offset-4 transition-colors"
+              >
+                Admin Portal
+              </Link>
+            )}
+          </div>
         </div>
       </div>
     </footer>

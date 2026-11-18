@@ -9,6 +9,8 @@ import {
 } from 'lucide-react';
 import { Language, Order } from '../types';
 import { buildWhatsAppOrderUrl, formatBDT } from '../utils/formatters';
+import { formatOrderDateTime } from '../utils/orderExport';
+import { SafeImage } from './SafeImage';
 
 interface OrderConfirmationPageProps {
   order: Order;
@@ -63,7 +65,7 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({
             </div>
             <div>
               <p className="text-xs font-semibold uppercase tracking-wider text-emerald-700 mb-1">
-                {lang === 'bn' ? 'অর্ডার সফলভাবে গৃহীত হয়েছে' : 'Order Confirmed'}
+                {lang === 'bn' ? 'অর্ডার সফলভাবে গৃহীত হয়েছে' : 'Order Placed Successfully'}
               </p>
               <h1 className="font-display text-2xl font-bold text-zinc-950">
                 {lang === 'bn'
@@ -72,7 +74,8 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({
               </h1>
               <p className="text-sm text-zinc-600 mt-1">
                 Order <span className="font-mono font-bold text-zinc-950">{order.orderNumber}</span>{' '}
-                is being prepared for Cash on Delivery dispatch.
+                was placed on {formatOrderDateTime(order.createdAt)} and is queued for Cash on
+                Delivery dispatch.
               </p>
             </div>
           </div>
@@ -95,14 +98,15 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({
             </h2>
             <p className="font-semibold text-zinc-950">{order.customerName}</p>
             <p className="font-mono text-xs text-zinc-700 mt-0.5">{order.phone}</p>
+            {order.email && <p className="text-xs text-zinc-500 mt-0.5">{order.email}</p>}
             <p className="text-zinc-600 mt-1 leading-relaxed">
-              {order.address}, {order.district}, {order.division}
+              {order.address}, {order.city || order.district}, {order.district}, {order.division}
             </p>
           </div>
           <div>
             <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2 flex items-center gap-1.5">
               <Truck className="w-3.5 h-3.5 text-[#0066FF]" />
-              Dispatch & Payment
+              Dispatch &amp; Payment
             </h2>
             <p className="font-semibold text-zinc-950">{order.paymentMethod}</p>
             <p className="text-zinc-600 mt-1">
@@ -111,8 +115,8 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({
             </p>
             <p className="text-zinc-500 text-xs mt-1">
               {order.division === 'Dhaka'
-                ? 'Estimated delivery within 24–48 hours'
-                : 'Estimated delivery within 2–4 business days'}
+                ? 'Estimated delivery: 24–48 hours inside Dhaka'
+                : `Estimated delivery: 2–4 business days to ${order.city || order.district}`}
             </p>
           </div>
         </div>
@@ -120,7 +124,7 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({
         {/* Items Ordered */}
         <div className="py-6 border-b border-zinc-200">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-4">
-            Items Ordered
+            Ordered Product Details
           </h2>
           <div className="space-y-3">
             {order.items.map((item) => (
@@ -129,10 +133,19 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({
                 className="flex items-center justify-between gap-4 text-sm"
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <span className="font-mono text-xs font-semibold text-zinc-500 tabular-nums">
-                    {item.quantity}×
-                  </span>
-                  <span className="font-medium text-zinc-950 truncate">{item.name}</span>
+                  <div className="w-11 h-11 rounded-lg bg-[#F4F5F7] border border-zinc-200 overflow-hidden shrink-0">
+                    <SafeImage
+                      src={item.imageUrl}
+                      alt={item.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-medium text-zinc-950 truncate">{item.name}</p>
+                    <p className="font-mono text-xs text-zinc-500 tabular-nums">
+                      {item.quantity} × {formatBDT(item.price)}
+                    </p>
+                  </div>
                 </div>
                 <span className="font-mono font-semibold text-zinc-950 tabular-nums shrink-0">
                   {formatBDT(item.price * item.quantity)}
@@ -148,14 +161,20 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({
             <span>Subtotal</span>
             <span className="font-mono tabular-nums">{formatBDT(order.subtotal)}</span>
           </div>
+          {order.discount > 0 && (
+            <div className="flex justify-between text-emerald-700">
+              <span>Discount Saved</span>
+              <span className="font-mono tabular-nums">-{formatBDT(order.discount)}</span>
+            </div>
+          )}
           <div className="flex justify-between text-zinc-600">
-            <span>Delivery Fee</span>
+            <span>Delivery Charge</span>
             <span className="font-mono tabular-nums">
               {order.deliveryFee === 0 ? 'Free' : formatBDT(order.deliveryFee)}
             </span>
           </div>
           <div className="flex justify-between pt-3 border-t border-zinc-200 text-base font-bold text-zinc-950">
-            <span>Total Due on Delivery</span>
+            <span>Total Payment Amount (COD)</span>
             <span className="font-mono text-xl text-[#0066FF] tabular-nums">
               {formatBDT(order.total)}
             </span>

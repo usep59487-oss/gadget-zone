@@ -25,6 +25,7 @@ interface HeaderProps {
   onOpenAdmin: () => void;
   user: FirebaseUser | null;
   isAdmin: boolean;
+  unreadOrderCount?: number;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -41,6 +42,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenAdmin,
   user,
   isAdmin,
+  unreadOrderCount = 0,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
@@ -58,7 +60,7 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-zinc-200">
+    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-zinc-200 print:hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4 lg:gap-8">
         {/* Zone 1: Brand Wordmark (single element) */}
         <button
@@ -154,16 +156,24 @@ export const Header: React.FC<HeaderProps> = ({
             {lang === 'en' ? 'বাং' : 'EN'}
           </button>
 
-          {isAdmin && (
-            <button
-              type="button"
-              onClick={onOpenAdmin}
-              className="hidden sm:inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-zinc-900 text-xs font-semibold text-zinc-950 hover:bg-zinc-950 hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer"
-            >
-              <ShieldCheck className="w-3.5 h-3.5" />
-              Admin
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={onOpenAdmin}
+            aria-label={isAdmin ? 'Admin Dashboard' : 'Admin Login'}
+            className={`hidden sm:inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border text-xs font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+              activePage === 'admin'
+                ? 'bg-zinc-950 border-zinc-950 text-white'
+                : 'border-zinc-900 text-zinc-950 hover:bg-zinc-950 hover:text-white'
+            }`}
+          >
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>Admin</span>
+            {isAdmin && unreadOrderCount > 0 && (
+              <span className="tabular-nums px-1.5 py-0.2 rounded bg-[#0066FF] text-white text-[10px] font-bold">
+                {unreadOrderCount}
+              </span>
+            )}
+          </button>
 
           <button
             type="button"
@@ -236,19 +246,17 @@ export const Header: React.FC<HeaderProps> = ({
               {item.label}
             </button>
           ))}
-          {isAdmin && (
-            <button
-              type="button"
-              onClick={() => {
-                setMobileMenuOpen(false);
-                onOpenAdmin();
-              }}
-              className="w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold text-[#0066FF] hover:bg-blue-50 transition-colors flex items-center gap-2"
-            >
-              <ShieldCheck className="w-4 h-4" />
-              Admin Dashboard
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => {
+              setMobileMenuOpen(false);
+              onOpenAdmin();
+            }}
+            className="w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold text-[#0066FF] hover:bg-blue-50 transition-colors flex items-center gap-2 cursor-pointer"
+          >
+            <ShieldCheck className="w-4 h-4" />
+            {isAdmin ? 'Admin Dashboard' : 'Admin Login'}
+          </button>
         </div>
       )}
     </header>

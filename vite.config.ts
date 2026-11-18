@@ -6,6 +6,8 @@ import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
   return {
+    base: '/',
+    appType: 'spa' as const,
     plugins: [
       react(),
       tailwindcss(),

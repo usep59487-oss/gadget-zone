@@ -28,14 +28,69 @@ export const BD_DIVISIONS = [
 export type BdDivision = (typeof BD_DIVISIONS)[number];
 
 export const ORDER_STATUSES = [
+  'New Order',
   'Pending',
   'Confirmed',
+  'Processing',
   'Shipped',
   'Delivered',
   'Cancelled',
 ] as const;
 
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
+
+export interface CustomMetaEntry {
+  name: string;
+  content: string;
+}
+
+export interface ProductSeo {
+  seoTitle: string;
+  metaDescription: string;
+  focusKeyword: string;
+  additionalKeywords: string[];
+  canonicalUrl: string;
+  robotsIndex: 'index' | 'noindex';
+  robotsFollow: 'follow' | 'nofollow';
+  breadcrumbTitle: string;
+  showCategoryInBreadcrumb: boolean;
+  internalLinkTargets: string[];
+  ogTitle: string;
+  ogDescription: string;
+  ogImage: string;
+  twitterTitle: string;
+  twitterDescription: string;
+  twitterImage: string;
+  customMeta: CustomMetaEntry[];
+}
+
+export type SeoCheckStatus = 'pass' | 'warning' | 'fail';
+
+export interface SeoCheckResult {
+  id: string;
+  group: 'basic' | 'additional';
+  label: string;
+  status: SeoCheckStatus;
+  detail: string;
+  suggestion: string;
+  weight: number;
+}
+
+export interface SeoAnalysisReport {
+  score: number;
+  statusLabel: 'Optimized' | 'Needs Improvement' | 'Needs Attention';
+  passedCount: number;
+  warningCount: number;
+  failedCount: number;
+  checks: SeoCheckResult[];
+  keywordMatches: {
+    keyword: string;
+    inTitle: boolean;
+    inMeta: boolean;
+    inSlug: boolean;
+    inDescription: boolean;
+  }[];
+}
 
 export interface Product {
   id: string;
@@ -53,6 +108,10 @@ export interface Product {
   sku: string;
   isFeatured: boolean;
   isBestSeller: boolean;
+  slug?: string;
+  brand?: string;
+  imageAlt?: string;
+  seo?: ProductSeo;
   createdAt?: unknown;
   updatedAt?: unknown;
 }
@@ -79,13 +138,16 @@ export interface Order {
   email: string;
   division: BdDivision;
   district: string;
+  city: string;
   address: string;
   notes: string;
   paymentMethod: 'Cash on Delivery';
   status: OrderStatus;
+  isReadByAdmin: boolean;
   items: OrderItem[];
   subtotal: number;
   deliveryFee: number;
+  discount: number;
   total: number;
   createdAt?: unknown;
   updatedAt?: unknown;

@@ -58,6 +58,55 @@ service cloud.firestore {
       ];
     }
 
+    function isValidProductSeo(s) {
+      return s is map &&
+        s.keys().hasAll([
+          'seoTitle', 'metaDescription', 'focusKeyword', 'additionalKeywords',
+          'canonicalUrl', 'robotsIndex', 'robotsFollow', 'breadcrumbTitle',
+          'showCategoryInBreadcrumb', 'internalLinkTargets',
+          'ogTitle', 'ogDescription', 'ogImage',
+          'twitterTitle', 'twitterDescription', 'twitterImage',
+          'customMeta'
+        ]) &&
+        s.keys().hasOnly([
+          'seoTitle', 'metaDescription', 'focusKeyword', 'additionalKeywords',
+          'canonicalUrl', 'robotsIndex', 'robotsFollow', 'breadcrumbTitle',
+          'showCategoryInBreadcrumb', 'internalLinkTargets',
+          'ogTitle', 'ogDescription', 'ogImage',
+          'twitterTitle', 'twitterDescription', 'twitterImage',
+          'customMeta'
+        ]) &&
+        s.seoTitle is string && s.seoTitle.size() <= 160 &&
+        s.metaDescription is string && s.metaDescription.size() <= 320 &&
+        s.focusKeyword is string && s.focusKeyword.size() <= 100 &&
+        s.additionalKeywords is list && s.additionalKeywords.size() <= 15 &&
+        (s.additionalKeywords.size() == 0 || (s.additionalKeywords[0] is string && s.additionalKeywords[0].size() <= 80)) &&
+        s.canonicalUrl is string && s.canonicalUrl.size() <= 500 &&
+        s.robotsIndex in ['index', 'noindex'] &&
+        s.robotsFollow in ['follow', 'nofollow'] &&
+        s.breadcrumbTitle is string && s.breadcrumbTitle.size() <= 120 &&
+        s.showCategoryInBreadcrumb is bool &&
+        s.internalLinkTargets is list && s.internalLinkTargets.size() <= 8 &&
+        (s.internalLinkTargets.size() == 0 || (s.internalLinkTargets[0] is string && s.internalLinkTargets[0].size() <= 160)) &&
+        s.ogTitle is string && s.ogTitle.size() <= 160 &&
+        s.ogDescription is string && s.ogDescription.size() <= 320 &&
+        s.ogImage is string && s.ogImage.size() <= 500 &&
+        s.twitterTitle is string && s.twitterTitle.size() <= 160 &&
+        s.twitterDescription is string && s.twitterDescription.size() <= 320 &&
+        s.twitterImage is string && s.twitterImage.size() <= 500 &&
+        s.customMeta is list && s.customMeta.size() <= 10 &&
+        (
+          s.customMeta.size() == 0 ||
+          (
+            s.customMeta[0] is map &&
+            s.customMeta[0].keys().hasAll(['name', 'content']) &&
+            s.customMeta[0].keys().hasOnly(['name', 'content']) &&
+            s.customMeta[0].name is string && s.customMeta[0].name.size() <= 60 &&
+            s.customMeta[0].content is string && s.customMeta[0].content.size() <= 300
+          )
+        );
+    }
+
     function isValidProduct(data, productId) {
       return data.keys().hasAll([
           'id', 'name', 'nameBn', 'category', 'description', 'descriptionBn',
@@ -67,7 +116,8 @@ service cloud.firestore {
         data.keys().hasOnly([
           'id', 'name', 'nameBn', 'category', 'description', 'descriptionBn',
           'originalPrice', 'discountedPrice', 'stock', 'rating', 'reviewCount',
-          'imageUrl', 'sku', 'isFeatured', 'isBestSeller', 'createdAt', 'updatedAt'
+          'imageUrl', 'sku', 'isFeatured', 'isBestSeller',
+          'slug', 'brand', 'imageAlt', 'seo', 'createdAt', 'updatedAt'
         ]) &&
         data.id == productId &&
         isValidId(data.id) &&
@@ -85,6 +135,10 @@ service cloud.firestore {
         data.sku is string && data.sku.size() >= 1 && data.sku.size() <= 40 &&
         data.isFeatured is bool &&
         data.isBestSeller is bool &&
+        (!('slug' in data) || (data.slug is string && data.slug.size() <= 160 && (data.slug == '' || data.slug.matches('^[a-z0-9]+(-[a-z0-9]+)*$')))) &&
+        (!('brand' in data) || (data.brand is string && data.brand.size() <= 80)) &&
+        (!('imageAlt' in data) || (data.imageAlt is string && data.imageAlt.size() <= 200)) &&
+        (!('seo' in data) || isValidProductSeo(data.seo)) &&
         data.createdAt is timestamp &&
         data.updatedAt is timestamp;
     }
@@ -97,19 +151,29 @@ service cloud.firestore {
     }
 
     function isValidOrderStatus(status) {
-      return status in ['Pending', 'Confirmed', 'Shipped', 'Delivered', 'Cancelled'];
+      return status in [
+        'New Order',
+        'Pending',
+        'Confirmed',
+        'Processing',
+        'Shipped',
+        'Delivered',
+        'Cancelled'
+      ];
     }
 
     function isValidOrder(data, orderId) {
       return data.keys().hasAll([
           'id', 'orderNumber', 'userId', 'customerName', 'phone', 'email',
-          'division', 'district', 'address', 'notes', 'paymentMethod', 'status',
-          'items', 'subtotal', 'deliveryFee', 'total', 'createdAt', 'updatedAt'
+          'division', 'district', 'city', 'address', 'notes', 'paymentMethod',
+          'status', 'isReadByAdmin', 'items', 'subtotal', 'deliveryFee',
+          'discount', 'total', 'createdAt', 'updatedAt'
         ]) &&
         data.keys().hasOnly([
           'id', 'orderNumber', 'userId', 'customerName', 'phone', 'email',
-          'division', 'district', 'address', 'notes', 'paymentMethod', 'status',
-          'items', 'subtotal', 'deliveryFee', 'total', 'createdAt', 'updatedAt'
+          'division', 'district', 'city', 'address', 'notes', 'paymentMethod',
+          'status', 'isReadByAdmin', 'items', 'subtotal', 'deliveryFee',
+          'discount', 'total', 'createdAt', 'updatedAt'
         ]) &&
         data.id == orderId &&
         isValidId(data.id) &&
@@ -121,10 +185,12 @@ service cloud.firestore {
         data.email is string && data.email.size() <= 120 &&
         isValidDivision(data.division) &&
         data.district is string && data.district.size() >= 2 && data.district.size() <= 60 &&
+        data.city is string && data.city.size() >= 2 && data.city.size() <= 60 &&
         data.address is string && data.address.size() >= 5 && data.address.size() <= 250 &&
         data.notes is string && data.notes.size() <= 300 &&
         data.paymentMethod == 'Cash on Delivery' &&
         isValidOrderStatus(data.status) &&
+        data.isReadByAdmin is bool &&
         data.items is list && data.items.size() >= 1 && data.items.size() <= 25 &&
         data.items[0] is map &&
         data.items[0].keys().hasAll(['productId', 'name', 'price', 'quantity', 'imageUrl']) &&
@@ -136,6 +202,7 @@ service cloud.firestore {
         data.items[0].imageUrl is string && data.items[0].imageUrl.size() <= 500 &&
         data.subtotal is number && data.subtotal > 0 && data.subtotal <= 5000000 &&
         data.deliveryFee is number && data.deliveryFee >= 0 && data.deliveryFee <= 5000 &&
+        data.discount is number && data.discount >= 0 && data.discount <= 5000000 &&
         data.total is number && data.total == data.subtotal + data.deliveryFee &&
         data.createdAt is timestamp &&
         data.updatedAt is timestamp;
@@ -194,7 +261,8 @@ service cloud.firestore {
         incoming().diff(existing()).affectedKeys().hasOnly([
           'name', 'nameBn', 'category', 'description', 'descriptionBn',
           'originalPrice', 'discountedPrice', 'stock', 'rating', 'reviewCount',
-          'imageUrl', 'sku', 'isFeatured', 'isBestSeller', 'updatedAt'
+          'imageUrl', 'sku', 'isFeatured', 'isBestSeller',
+          'slug', 'brand', 'imageAlt', 'seo', 'updatedAt'
         ]);
       allow delete: if isAdmin() && isValidId(productId);
     }
@@ -209,7 +277,8 @@ service cloud.firestore {
         (isVerifiedUser() && resource.data.userId == request.auth.uid);
       allow create: if isValidId(orderId) &&
         isValidOrder(incoming(), orderId) &&
-        incoming().status == 'Pending' &&
+        incoming().status == 'New Order' &&
+        incoming().isReadByAdmin == false &&
         incoming().createdAt == request.time &&
         incoming().updatedAt == request.time && (
           (isVerifiedUser() && incoming().userId == request.auth.uid) ||
@@ -222,12 +291,18 @@ service cloud.firestore {
         incoming().userId == existing().userId &&
         incoming().createdAt == existing().createdAt &&
         incoming().updatedAt == request.time && (
-          isAdmin() ||
+          (
+            isAdmin() &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'status', 'isReadByAdmin', 'updatedAt'
+            ])
+          ) ||
           (
             isVerifiedUser() &&
             existing().userId == request.auth.uid &&
-            existing().status == 'Pending' &&
+            existing().status in ['New Order', 'Pending'] &&
             incoming().status == 'Cancelled' &&
+            incoming().isReadByAdmin == existing().isReadByAdmin &&
             incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])
           )
         );

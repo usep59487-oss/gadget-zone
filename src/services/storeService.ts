@@ -22,12 +22,49 @@ import {
   Product,
   ProductCategory,
   PRODUCT_CATEGORIES,
+  ProductSeo,
   UserProfile,
 } from '../types';
 import { sanitizeId } from '../utils/formatters';
+import { createDefaultProductSeo, generateProductSlug } from '../utils/seo';
 
 function clampString(val: string, max: number): string {
   return val.trim().slice(0, max);
+}
+
+function sanitizeProductSeo(seoInput: Partial<ProductSeo> | undefined): ProductSeo {
+  const base = createDefaultProductSeo({ seo: seoInput as ProductSeo });
+  return {
+    seoTitle: clampString(base.seoTitle, 160),
+    metaDescription: clampString(base.metaDescription, 320),
+    focusKeyword: clampString(base.focusKeyword, 100),
+    additionalKeywords: base.additionalKeywords
+      .map((k) => clampString(String(k), 80))
+      .filter(Boolean)
+      .slice(0, 15),
+    canonicalUrl: clampString(base.canonicalUrl, 500),
+    robotsIndex: base.robotsIndex === 'noindex' ? 'noindex' : 'index',
+    robotsFollow: base.robotsFollow === 'nofollow' ? 'nofollow' : 'follow',
+    breadcrumbTitle: clampString(base.breadcrumbTitle, 120),
+    showCategoryInBreadcrumb: Boolean(base.showCategoryInBreadcrumb),
+    internalLinkTargets: base.internalLinkTargets
+      .map((t) => clampString(String(t), 160))
+      .filter(Boolean)
+      .slice(0, 8),
+    ogTitle: clampString(base.ogTitle, 160),
+    ogDescription: clampString(base.ogDescription, 320),
+    ogImage: clampString(base.ogImage, 500),
+    twitterTitle: clampString(base.twitterTitle, 160),
+    twitterDescription: clampString(base.twitterDescription, 320),
+    twitterImage: clampString(base.twitterImage, 500),
+    customMeta: base.customMeta
+      .filter((m) => m && String(m.name || '').trim() && String(m.content || '').trim())
+      .map((m) => ({
+        name: clampString(String(m.name), 60),
+        content: clampString(String(m.content), 300),
+      }))
+      .slice(0, 10),
+  };
 }
 
 export function subscribeToProducts(
@@ -60,6 +97,15 @@ export function subscribeToProducts(
           sku: String(data.sku || 'GZ-SKU'),
           isFeatured: Boolean(data.isFeatured),
           isBestSeller: Boolean(data.isBestSeller),
+          slug:
+            typeof data.slug === 'string' && data.slug
+              ? data.slug
+              : generateProductSlug(String(data.name || docSnap.id)),
+          brand: typeof data.brand === 'string' ? data.brand : '',
+          imageAlt: typeof data.imageAlt === 'string' ? data.imageAlt : '',
+          seo: data.seo
+            ? sanitizeProductSeo(data.seo as Partial<ProductSeo>)
+            : createDefaultProductSeo(),
           createdAt: data.createdAt,
           updatedAt: data.updatedAt,
         };
@@ -102,6 +148,10 @@ export async function seedSampleProducts(sampleProducts: Product[]): Promise<voi
         sku: clampString(product.sku, 40),
         isFeatured: Boolean(product.isFeatured),
         isBestSeller: Boolean(product.isBestSeller),
+        slug: generateProductSlug(product.slug || product.name || id),
+        brand: clampString(product.brand || '', 80),
+        imageAlt: clampString(product.imageAlt || '', 200),
+        seo: sanitizeProductSeo(product.seo),
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
@@ -136,6 +186,10 @@ export async function upsertProduct(
     sku: clampString(product.sku, 40),
     isFeatured: Boolean(product.isFeatured),
     isBestSeller: Boolean(product.isBestSeller),
+    slug: generateProductSlug(product.slug || product.name || id),
+    brand: clampString(product.brand || '', 80),
+    imageAlt: clampString(product.imageAlt || '', 200),
+    seo: sanitizeProductSeo(product.seo),
     updatedAt: serverTimestamp(),
   };
 
@@ -175,11 +229,13 @@ export async function createOrder(params: {
   email: string;
   division: BdDivision;
   district: string;
+  city: string;
   address: string;
   notes: string;
   items: OrderItem[];
   subtotal: number;
   deliveryFee: number;
+  discount: number;
 }): Promise<Order> {
   const orderId = `ord-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`;
   const orderNumber = `GZ-${String(Math.floor(10000 + Math.random() * 89999))}`;
@@ -195,6 +251,7 @@ export async function createOrder(params: {
 
   const subtotal = Math.max(1, Math.round(params.subtotal));
   const deliveryFee = Math.max(0, Math.round(params.deliveryFee));
+  const discount = Math.max(0, Math.round(params.discount));
   const total = subtotal + deliveryFee;
 
   const payload = {
@@ -206,13 +263,16 @@ export async function createOrder(params: {
     email: clampString(params.email || '', 120),
     division: params.division,
     district: clampString(params.district, 60),
+    city: clampString(params.city || params.district, 60),
     address: clampString(params.address, 250),
     notes: clampString(params.notes || '', 300),
     paymentMethod: 'Cash on Delivery' as const,
-    status: 'Pending' as const,
+    status: 'New Order' as const,
+    isReadByAdmin: false,
     items: sanitizedItems,
     subtotal,
     deliveryFee,
+    discount,
     total,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
@@ -241,13 +301,16 @@ function mapOrderDoc(docSnap: { id: string; data: () => Record<string, unknown> 
     email: String(d.email || ''),
     division: (d.division as BdDivision) || 'Dhaka',
     district: String(d.district || ''),
+    city: String(d.city || d.district || ''),
     address: String(d.address || ''),
     notes: String(d.notes || ''),
     paymentMethod: 'Cash on Delivery',
-    status: (d.status as OrderStatus) || 'Pending',
+    status: (d.status as OrderStatus) || 'New Order',
+    isReadByAdmin: typeof d.isReadByAdmin === 'boolean' ? d.isReadByAdmin : false,
     items: Array.isArray(d.items) ? (d.items as OrderItem[]) : [],
     subtotal: Number(d.subtotal) || 0,
     deliveryFee: Number(d.deliveryFee) || 0,
+    discount: Number(d.discount) || 0,
     total: Number(d.total) || 0,
     createdAt: d.createdAt,
     updatedAt: d.updatedAt,
@@ -278,15 +341,25 @@ export function subscribeToUserOrders(
 }
 
 export function subscribeToAllOrders(
-  onUpdate: (orders: Order[]) => void,
+  onUpdate: (orders: Order[], newlyAddedIds: string[]) => void,
   onError?: (err: Error) => void
 ) {
   const path = 'orders';
   const q = query(collection(db, path), orderBy('createdAt', 'desc'));
+  let initialSnapshotDone = false;
+
   return onSnapshot(
     q,
     (snapshot) => {
-      onUpdate(snapshot.docs.map(mapOrderDoc));
+      const orders = snapshot.docs.map(mapOrderDoc);
+      const newlyAddedIds = initialSnapshotDone
+        ? snapshot
+            .docChanges()
+            .filter((change) => change.type === 'added')
+            .map((change) => change.doc.id)
+        : [];
+      initialSnapshotDone = true;
+      onUpdate(orders, newlyAddedIds);
     },
     (error) => {
       if (onError) onError(error);
@@ -304,6 +377,44 @@ export async function updateOrderStatus(orderId: string, status: OrderStatus): P
     });
   } catch (error) {
     handleFirestoreError(error, OperationType.UPDATE, path);
+  }
+}
+
+export async function markOrderAsRead(orderId: string, isRead = true): Promise<void> {
+  const path = `orders/${orderId}`;
+  try {
+    await updateDoc(doc(db, 'orders', orderId), {
+      isReadByAdmin: isRead,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.UPDATE, path);
+  }
+}
+
+export async function markAllOrdersAsRead(orderIds: string[]): Promise<void> {
+  if (orderIds.length === 0) return;
+  const path = 'orders';
+  try {
+    const batch = writeBatch(db);
+    for (const id of orderIds) {
+      batch.update(doc(db, 'orders', id), {
+        isReadByAdmin: true,
+        updatedAt: serverTimestamp(),
+      });
+    }
+    await batch.commit();
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, path);
+  }
+}
+
+export async function deleteOrderById(orderId: string): Promise<void> {
+  const path = `orders/${orderId}`;
+  try {
+    await deleteDoc(doc(db, 'orders', orderId));
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, path);
   }
 }
 

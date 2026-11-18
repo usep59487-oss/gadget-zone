@@ -56,6 +56,9 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
   const [district, setDistrict] = useState(
     profile?.district || BD_DISTRICTS_BY_DIVISION['Dhaka'][0]
   );
+  const [city, setCity] = useState(
+    profile?.district || BD_DISTRICTS_BY_DIVISION['Dhaka'][0]
+  );
   const [address, setAddress] = useState(profile?.address || '');
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -75,11 +78,19 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     const districts = BD_DISTRICTS_BY_DIVISION[newDiv];
     if (districts && districts.length > 0) {
       setDistrict(districts[0]);
+      setCity(districts[0]);
     }
   };
 
   const subtotal = items.reduce(
     (sum, item) => sum + item.product.discountedPrice * item.quantity,
+    0
+  );
+  const discount = items.reduce(
+    (sum, item) =>
+      sum +
+      Math.max(0, item.product.originalPrice - item.product.discountedPrice) *
+        item.quantity,
     0
   );
   const deliveryFee = calculateDeliveryFee(subtotal, division);
@@ -118,6 +129,11 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       return;
     }
 
+    if (city.trim().length < 2) {
+      setErrorMsg('Please enter your city or area name.');
+      return;
+    }
+
     if (address.trim().length < 5) {
       setErrorMsg('Please provide your complete house, road, and area address.');
       return;
@@ -132,6 +148,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
         email: email.trim(),
         division,
         district: district.trim() || division,
+        city: city.trim() || district.trim() || division,
         address: address.trim(),
         notes: notes.trim(),
         items: items.map((item) => ({
@@ -143,6 +160,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
         })),
         subtotal,
         deliveryFee,
+        discount,
       });
       onOrderConfirmed(order);
     } catch (err) {
@@ -272,7 +290,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
               <MapPin className="w-4 h-4 text-[#0066FF]" />
               {lang === 'bn' ? '২. ডেলিভারি ঠিকানা (বাংলাদেশ)' : '2. Bangladesh Delivery Address'}
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-zinc-700 mb-1.5">
                   {lang === 'bn' ? 'বিভাগ *' : 'Division *'}
@@ -291,11 +309,14 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
               </div>
               <div>
                 <label className="block text-xs font-semibold text-zinc-700 mb-1.5">
-                  {lang === 'bn' ? 'জেলা / শহর *' : 'District / City *'}
+                  {lang === 'bn' ? 'জেলা *' : 'District *'}
                 </label>
                 <select
                   value={district}
-                  onChange={(e) => setDistrict(e.target.value)}
+                  onChange={(e) => {
+                    setDistrict(e.target.value);
+                    setCity(e.target.value);
+                  }}
                   className="w-full h-11 px-3.5 rounded-lg border border-zinc-300 text-sm text-zinc-950 bg-white focus:outline-none focus:border-[#0066FF]"
                 >
                   {BD_DISTRICTS_BY_DIVISION[division].map((dist) => (
@@ -304,6 +325,21 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                     </option>
                   ))}
                 </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-zinc-700 mb-1.5">
+                  {lang === 'bn' ? 'শহর / এলাকা *' : 'City / Area *'}
+                </label>
+                <input
+                  type="text"
+                  required
+                  minLength={2}
+                  maxLength={60}
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  placeholder="e.g. Banani, Dhaka"
+                  className="w-full h-11 px-3.5 rounded-lg border border-zinc-300 text-sm text-zinc-950 focus:outline-none focus:border-[#0066FF]"
+                />
               </div>
             </div>
             <div>
@@ -428,9 +464,17 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 {formatBDT(subtotal)}
               </span>
             </div>
+            {discount > 0 && (
+              <div className="flex items-center justify-between text-emerald-700">
+                <span>{lang === 'bn' ? 'মোট ডিসকাউন্ট সাশ্রয়' : 'Discount Saved'}</span>
+                <span className="font-mono font-semibold tabular-nums">
+                  -{formatBDT(discount)}
+                </span>
+              </div>
+            )}
             <div className="flex items-center justify-between text-zinc-600">
               <span>
-                {lang === 'bn' ? 'ডেলিভারি চার্জ' : 'Delivery Fee'} ({division})
+                {lang === 'bn' ? 'ডেলিভারি চার্জ' : 'Delivery Charge'} ({division})
               </span>
               <span className="font-mono font-semibold text-zinc-950 tabular-nums">
                 {deliveryFee === 0 ? 'Free' : formatBDT(deliveryFee)}
@@ -450,7 +494,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
               <span>
                 {division === 'Dhaka'
                   ? 'Estimated delivery: 24–48 hours inside Dhaka'
-                  : `Estimated delivery: 2–4 business days to ${district}`}
+                  : `Estimated delivery: 2–4 business days to ${city || district}`}
               </span>
             </div>
             <div className="flex items-center gap-2">
