@@ -1,0 +1,281 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global safety net: deny everything by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Startup connection check endpoint
+    match /test/connection {
+      allow get: if true;
+    }
+
+    // Core primitives
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isAdmin() {
+      return isVerifiedUser() && (
+        request.auth.token.email == 'usep59487@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    // Validation Blueprints
+    function isValidCategory(cat) {
+      return cat in [
+        'Wireless Earbuds',
+        'Bluetooth Headphones',
+        'Fast Chargers',
+        'USB Cables',
+        'Power Banks',
+        'Mobile Covers',
+        'Screen Protectors',
+        'Smart Watches',
+        'Mobile Stands'
+      ];
+    }
+
+    function isValidProduct(data, productId) {
+      return data.keys().hasAll([
+          'id', 'name', 'nameBn', 'category', 'description', 'descriptionBn',
+          'originalPrice', 'discountedPrice', 'stock', 'rating', 'reviewCount',
+          'imageUrl', 'sku', 'isFeatured', 'isBestSeller', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'id', 'name', 'nameBn', 'category', 'description', 'descriptionBn',
+          'originalPrice', 'discountedPrice', 'stock', 'rating', 'reviewCount',
+          'imageUrl', 'sku', 'isFeatured', 'isBestSeller', 'createdAt', 'updatedAt'
+        ]) &&
+        data.id == productId &&
+        isValidId(data.id) &&
+        data.name is string && data.name.size() >= 2 && data.name.size() <= 140 &&
+        data.nameBn is string && data.nameBn.size() >= 1 && data.nameBn.size() <= 180 &&
+        isValidCategory(data.category) &&
+        data.description is string && data.description.size() <= 1000 &&
+        data.descriptionBn is string && data.descriptionBn.size() <= 1200 &&
+        data.originalPrice is number && data.originalPrice > 0 && data.originalPrice <= 1000000 &&
+        data.discountedPrice is number && data.discountedPrice > 0 && data.discountedPrice <= data.originalPrice &&
+        data.stock is number && data.stock >= 0 && data.stock <= 100000 &&
+        data.rating is number && data.rating >= 0 && data.rating <= 5 &&
+        data.reviewCount is number && data.reviewCount >= 0 && data.reviewCount <= 1000000 &&
+        data.imageUrl is string && data.imageUrl.size() >= 1 && data.imageUrl.size() <= 500 &&
+        data.sku is string && data.sku.size() >= 1 && data.sku.size() <= 40 &&
+        data.isFeatured is bool &&
+        data.isBestSeller is bool &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidDivision(div) {
+      return div in [
+        'Dhaka', 'Chattogram', 'Rajshahi', 'Khulna',
+        'Barishal', 'Sylhet', 'Rangpur', 'Mymensingh'
+      ];
+    }
+
+    function isValidOrderStatus(status) {
+      return status in ['Pending', 'Confirmed', 'Shipped', 'Delivered', 'Cancelled'];
+    }
+
+    function isValidOrder(data, orderId) {
+      return data.keys().hasAll([
+          'id', 'orderNumber', 'userId', 'customerName', 'phone', 'email',
+          'division', 'district', 'address', 'notes', 'paymentMethod', 'status',
+          'items', 'subtotal', 'deliveryFee', 'total', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'id', 'orderNumber', 'userId', 'customerName', 'phone', 'email',
+          'division', 'district', 'address', 'notes', 'paymentMethod', 'status',
+          'items', 'subtotal', 'deliveryFee', 'total', 'createdAt', 'updatedAt'
+        ]) &&
+        data.id == orderId &&
+        isValidId(data.id) &&
+        data.orderNumber is string && data.orderNumber.size() >= 6 && data.orderNumber.size() <= 32 &&
+        data.orderNumber.matches('^GZ-[0-9]{4,8}$') &&
+        isValidId(data.userId) &&
+        data.customerName is string && data.customerName.size() >= 2 && data.customerName.size() <= 100 &&
+        data.phone is string && data.phone.size() >= 11 && data.phone.size() <= 16 &&
+        data.email is string && data.email.size() <= 120 &&
+        isValidDivision(data.division) &&
+        data.district is string && data.district.size() >= 2 && data.district.size() <= 60 &&
+        data.address is string && data.address.size() >= 5 && data.address.size() <= 250 &&
+        data.notes is string && data.notes.size() <= 300 &&
+        data.paymentMethod == 'Cash on Delivery' &&
+        isValidOrderStatus(data.status) &&
+        data.items is list && data.items.size() >= 1 && data.items.size() <= 25 &&
+        data.items[0] is map &&
+        data.items[0].keys().hasAll(['productId', 'name', 'price', 'quantity', 'imageUrl']) &&
+        data.items[0].keys().hasOnly(['productId', 'name', 'price', 'quantity', 'imageUrl']) &&
+        isValidId(data.items[0].productId) &&
+        data.items[0].name is string && data.items[0].name.size() >= 1 && data.items[0].name.size() <= 140 &&
+        data.items[0].price is number && data.items[0].price > 0 &&
+        data.items[0].quantity is number && data.items[0].quantity >= 1 && data.items[0].quantity <= 50 &&
+        data.items[0].imageUrl is string && data.items[0].imageUrl.size() <= 500 &&
+        data.subtotal is number && data.subtotal > 0 && data.subtotal <= 5000000 &&
+        data.deliveryFee is number && data.deliveryFee >= 0 && data.deliveryFee <= 5000 &&
+        data.total is number && data.total == data.subtotal + data.deliveryFee &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidUserProfile(data, userId) {
+      return data.keys().hasAll([
+          'uid', 'displayName', 'email', 'phone', 'division', 'district', 'address', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'uid', 'displayName', 'email', 'phone', 'division', 'district', 'address', 'updatedAt'
+        ]) &&
+        data.uid == userId &&
+        isValidId(data.uid) &&
+        data.displayName is string && data.displayName.size() <= 100 &&
+        data.email is string && data.email.size() <= 120 &&
+        data.phone is string && data.phone.size() <= 20 &&
+        data.division is string && data.division.size() <= 40 &&
+        data.district is string && data.district.size() <= 60 &&
+        data.address is string && data.address.size() <= 250 &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidSubscriber(data) {
+      return data.keys().hasAll(['email', 'subscribedAt']) &&
+        data.keys().hasOnly(['email', 'subscribedAt']) &&
+        data.email is string && data.email.size() >= 5 && data.email.size() <= 120 &&
+        data.email.matches('^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$') &&
+        data.subscribedAt is timestamp;
+    }
+
+    function isValidAdminRecord(data, adminId) {
+      return data.keys().hasAll(['uid', 'email', 'grantedAt']) &&
+        data.keys().hasOnly(['uid', 'email', 'grantedAt']) &&
+        data.uid == adminId &&
+        isValidId(data.uid) &&
+        data.email is string && data.email.size() >= 5 && data.email.size() <= 120 &&
+        data.grantedAt is timestamp;
+    }
+
+    // Products Catalog
+    match /products/{productId} {
+      allow get: if isValidId(productId);
+      allow list: if true;
+      allow create: if isAdmin() &&
+        isValidId(productId) &&
+        isValidProduct(incoming(), productId) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isAdmin() &&
+        isValidId(productId) &&
+        isValidProduct(incoming(), productId) &&
+        incoming().id == existing().id &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'name', 'nameBn', 'category', 'description', 'descriptionBn',
+          'originalPrice', 'discountedPrice', 'stock', 'rating', 'reviewCount',
+          'imageUrl', 'sku', 'isFeatured', 'isBestSeller', 'updatedAt'
+        ]);
+      allow delete: if isAdmin() && isValidId(productId);
+    }
+
+    // Customer Orders (PII Isolated)
+    match /orders/{orderId} {
+      allow get: if isValidId(orderId) && (
+        isAdmin() ||
+        (isVerifiedUser() && existing().userId == request.auth.uid)
+      );
+      allow list: if isAdmin() ||
+        (isVerifiedUser() && resource.data.userId == request.auth.uid);
+      allow create: if isValidId(orderId) &&
+        isValidOrder(incoming(), orderId) &&
+        incoming().status == 'Pending' &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time && (
+          (isVerifiedUser() && incoming().userId == request.auth.uid) ||
+          (request.auth == null && incoming().userId == 'guest')
+        );
+      allow update: if isValidId(orderId) &&
+        isValidOrder(incoming(), orderId) &&
+        incoming().id == existing().id &&
+        incoming().orderNumber == existing().orderNumber &&
+        incoming().userId == existing().userId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          isAdmin() ||
+          (
+            isVerifiedUser() &&
+            existing().userId == request.auth.uid &&
+            existing().status == 'Pending' &&
+            incoming().status == 'Cancelled' &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])
+          )
+        );
+      allow delete: if isAdmin() && isValidId(orderId);
+    }
+
+    // Customer Profiles (PII Isolated)
+    match /users/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isValidId(userId) &&
+        isOwner(userId) &&
+        isVerifiedUser() &&
+        isValidUserProfile(incoming(), userId) &&
+        incoming().updatedAt == request.time;
+      allow update: if isValidId(userId) &&
+        isOwner(userId) &&
+        isVerifiedUser() &&
+        isValidUserProfile(incoming(), userId) &&
+        incoming().uid == existing().uid &&
+        incoming().updatedAt == request.time &&
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'displayName', 'email', 'phone', 'division', 'district', 'address', 'updatedAt'
+        ]);
+      allow delete: if isAdmin() && isValidId(userId);
+    }
+
+    // Newsletter Subscriptions
+    match /newsletter/{subscriberId} {
+      allow get: if isValidId(subscriberId) && isAdmin();
+      allow list: if isAdmin();
+      allow create: if isValidId(subscriberId) &&
+        isValidSubscriber(incoming()) &&
+        incoming().subscribedAt == request.time;
+      allow update: if false;
+      allow delete: if isAdmin() && isValidId(subscriberId);
+    }
+
+    // Admin Directory
+    match /admins/{adminId} {
+      allow get: if isValidId(adminId) && (isOwner(adminId) || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isValidId(adminId) &&
+        isAdmin() &&
+        isValidAdminRecord(incoming(), adminId) &&
+        incoming().grantedAt == request.time;
+      allow update: if false;
+      allow delete: if isAdmin() && isValidId(adminId) && adminId != request.auth.uid;
+    }
+  }
+}

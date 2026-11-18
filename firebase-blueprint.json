@@ -1,0 +1,343 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "Mobile accessory product listed in the Gadget Zone store.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Document identifier matching the Firestore document ID.",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "description": "Product display name in English.",
+          "minLength": 2,
+          "maxLength": 140
+        },
+        "nameBn": {
+          "type": "string",
+          "description": "Product display name in Bangla.",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "category": {
+          "type": "string",
+          "description": "Product category.",
+          "enum": [
+            "Wireless Earbuds",
+            "Bluetooth Headphones",
+            "Fast Chargers",
+            "USB Cables",
+            "Power Banks",
+            "Mobile Covers",
+            "Screen Protectors",
+            "Smart Watches",
+            "Mobile Stands"
+          ]
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed product description in English.",
+          "maxLength": 1000
+        },
+        "descriptionBn": {
+          "type": "string",
+          "description": "Detailed product description in Bangla.",
+          "maxLength": 1200
+        },
+        "originalPrice": {
+          "type": "number",
+          "description": "Original price in BDT."
+        },
+        "discountedPrice": {
+          "type": "number",
+          "description": "Selling / discounted price in BDT."
+        },
+        "stock": {
+          "type": "number",
+          "description": "Available inventory count."
+        },
+        "rating": {
+          "type": "number",
+          "description": "Average customer star rating from 0 to 5."
+        },
+        "reviewCount": {
+          "type": "number",
+          "description": "Total number of customer reviews."
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "Relative asset path or HTTPS image URL.",
+          "maxLength": 500
+        },
+        "sku": {
+          "type": "string",
+          "description": "Stock keeping unit code.",
+          "maxLength": 40
+        },
+        "isFeatured": {
+          "type": "boolean",
+          "description": "Whether product appears in Featured Products."
+        },
+        "isBestSeller": {
+          "type": "boolean",
+          "description": "Whether product appears in Best Selling Products."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server last update timestamp."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "nameBn",
+        "category",
+        "description",
+        "descriptionBn",
+        "originalPrice",
+        "discountedPrice",
+        "stock",
+        "rating",
+        "reviewCount",
+        "imageUrl",
+        "sku",
+        "isFeatured",
+        "isBestSeller",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer order placed for Cash on Delivery in Bangladesh.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "orderNumber": {
+          "type": "string",
+          "maxLength": 32,
+          "pattern": "^GZ-[0-9]{4,8}$"
+        },
+        "userId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "customerName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "phone": {
+          "type": "string",
+          "minLength": 11,
+          "maxLength": 16
+        },
+        "email": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "division": {
+          "type": "string",
+          "enum": [
+            "Dhaka",
+            "Chattogram",
+            "Rajshahi",
+            "Khulna",
+            "Barishal",
+            "Sylhet",
+            "Rangpur",
+            "Mymensingh"
+          ]
+        },
+        "district": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 60
+        },
+        "address": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 250
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "paymentMethod": {
+          "type": "string",
+          "enum": ["Cash on Delivery"]
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Pending", "Confirmed", "Shipped", "Delivered", "Cancelled"]
+        },
+        "items": {
+          "type": "array",
+          "description": "Bounded list of ordered items (1 to 25)."
+        },
+        "subtotal": {
+          "type": "number"
+        },
+        "deliveryFee": {
+          "type": "number"
+        },
+        "total": {
+          "type": "number"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "orderNumber",
+        "userId",
+        "customerName",
+        "phone",
+        "email",
+        "division",
+        "district",
+        "address",
+        "notes",
+        "paymentMethod",
+        "status",
+        "items",
+        "subtotal",
+        "deliveryFee",
+        "total",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Private customer delivery profile stored per authenticated user.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "email": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "phone": {
+          "type": "string",
+          "maxLength": 20
+        },
+        "division": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "district": {
+          "type": "string",
+          "maxLength": 60
+        },
+        "address": {
+          "type": "string",
+          "maxLength": 250
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "uid",
+        "displayName",
+        "email",
+        "phone",
+        "division",
+        "district",
+        "address",
+        "updatedAt"
+      ]
+    },
+    "NewsletterSubscriber": {
+      "title": "NewsletterSubscriber",
+      "description": "Email subscriber for Gadget Zone promotions and restock alerts.",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 120
+        },
+        "subscribedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["email", "subscribedAt"]
+    },
+    "AdminRecord": {
+      "title": "AdminRecord",
+      "description": "Explicit admin allowlist entry keyed by Firebase Auth UID.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "grantedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "email", "grantedAt"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": { "$ref": "#/entities/Product" },
+      "description": "Catalog of mobile accessories with pricing, discounts, and inventory."
+    },
+    "/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/Order" },
+      "description": "Customer Cash on Delivery orders with Bangladesh delivery details."
+    },
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Private delivery profile for signed-in customers."
+    },
+    "/newsletter/{subscriberId}": {
+      "schema": { "$ref": "#/entities/NewsletterSubscriber" },
+      "description": "Newsletter subscription records."
+    },
+    "/admins/{adminId}": {
+      "schema": { "$ref": "#/entities/AdminRecord" },
+      "description": "Admin role directory."
+    }
+  }
+}

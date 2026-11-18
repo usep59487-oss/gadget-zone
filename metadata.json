@@ -1,0 +1,6 @@
+{
+  "name": "Gadget Zone",
+  "description": "Premium Mobile Accessories Store in Bangladesh – Wireless Earbuds, GaN Fast Chargers, Power Banks, Smart Watches & More.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
